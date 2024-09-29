@@ -17,21 +17,21 @@ def process_data(folder_path):
     genre_mapping = {}
     genre_id_mapping = {}
 
-    # Read genres from the movie_genres.xlsx file
-    df_genres = pd.read_excel(os.path.join(folder_path, 'movie_genres.xlsx'), usecols=['movieID', 'genreID'])
+    # Read genres from the .... file
+    df_genres = pd.read_excel(os.path.join(folder_path, '...'), usecols=['movieID', 'category'])
 
     # Create a mapping of genre names to unique integer labels
-    unique_genres = df_genres['genreID'].unique()
+    unique_genres = df_genres['category'].unique()
     genre_id_mapping = {genre: idx for idx, genre in enumerate(sorted(unique_genres))}
 
     # Replace genre names with integer labels in the DataFrame
-    df_genres['genreID'] = df_genres['genreID'].map(genre_id_mapping)
+    df_genres['category'] = df_genres['category'].map(genre_id_mapping)
 
-    # Create a mapping of movieID to genreID
-    genre_mapping = df_genres.set_index('movieID')['genreID'].to_dict()
+    # Create a mapping of movieID to category
+    genre_mapping = df_genres.set_index('movieID')['category'].to_dict()
 
-    # Create a DataFrame with only genreID for MLP training
-    ground_truth_ratings = pd.DataFrame(list(genre_mapping.items()), columns=['movieID', 'genreID'])
+    # Create a DataFrame with only category for MLP training
+    ground_truth_ratings = pd.DataFrame(list(genre_mapping.items()), columns=['movieID', 'category'])
 
     print("Ground truth ratings with genre labels:")
     print(ground_truth_ratings.head())
@@ -54,9 +54,9 @@ def create_heterogeneous_graph(folder_path):
 
     # Create a dictionary to map each file to its corresponding columns
     file_columns = {
-        'user_movies.xlsx': ['userID', 'movieID', 'rating'],
-        'movie_directors.xlsx': ['movieID', 'directorID'],
-        'movie_actors.xlsx': ['movieID', 'actorID']
+        'user_movies': ['userID', 'movieID', 'rating'],
+        'movie_directors': ['movieID', 'directorID'],
+        'movie_actors': ['movieID', 'actorID']
     }
 
     # Iterate through the files and read them to populate the graph
@@ -133,9 +133,9 @@ def hypergraph_MU(folder_path):
     # Create a dictionary to store mapping between edges and their weights
     edge_weights = {}
 
-    # Create a dictionary to map the 'user_movies.xlsx' file to its corresponding columns
+    # Create a dictionary to map the 'user_movies' file to its corresponding columns
     file_columns = {
-        'user_movies.xlsx': ['userID', 'movieID', 'rating'],
+        'user_movies': ['userID', 'movieID', 'rating'],
     }
 
     # Iterate through the files and read them to populate the hypergraph
@@ -180,10 +180,6 @@ def hypergraph_MU(folder_path):
     # Count the number of edges
     num_edges = sum(len(nodes) for nodes in hyper_MU.values())
 
-    print("Hypergraph information of MU:")
-    print("Number of hyperedges of MU (nodes):", len(hyper_MU))
-    print("Number of edges of MU:", num_edges)
-
     return hyper_MU, att_MU
 
 def hypergraph_MD(folder_path):
@@ -195,9 +191,9 @@ def hypergraph_MD(folder_path):
     # Create a dictionary to store mapping between nodes and their attributes
     att_MD = {}
     
-    # Create a dictionary to map the 'director_movies.xlsx' file to its corresponding columns
+    # Create a dictionary to map the 'director_movies' file to its corresponding columns
     file_columns = {
-        'movie_directors.xlsx': ['movieID', 'directorID'],
+        'movie_directors': ['movieID', 'directorID'],
     }
 
     # Iterate through the files and read them to populate the hyper_MD
@@ -239,10 +235,6 @@ def hypergraph_MD(folder_path):
     # Count the number of edges
     num_edges = sum(len(nodes) for nodes in hyper_MD.values())
 
-    print("Hypergraph information of MD:")
-    print("Number of hyperedges of MD (nodes):", len(hyper_MD))
-    print("Number of edges of MD:", num_edges)
-
     return hyper_MD, att_MD
 
 def hypergraph_MA(folder_path):
@@ -254,9 +246,9 @@ def hypergraph_MA(folder_path):
     # Create a dictionary to store mapping between nodes and their attributes
     att_MA = {}
     
-    # Create a dictionary to map the 'actor_movies.xlsx' file to its corresponding columns
+    # Create a dictionary to map the 'actor_movies' file to its corresponding columns
     file_columns = {
-        'movie_actors.xlsx': ['movieID', 'actorID'],
+        'movie_actors': ['movieID', 'actorID'],
     }
 
     # Iterate through the files and read them to populate the hyper_MA
@@ -297,10 +289,6 @@ def hypergraph_MA(folder_path):
 
     # Count the number of edges
     num_edges = sum(len(nodes) for nodes in hyper_MA.values())
-
-    print("Hypergraph information of MA:")
-    print("Number of hyperedges of MA (nodes):", len(hyper_MA))
-    print("Number of edges of MA:", num_edges)
 
     return hyper_MA, att_MA
 
@@ -405,7 +393,6 @@ class HypergraphNN(nn.Module):
         with torch.no_grad():
             logits = self.forward(incidence_matrix, features)  # Provide both incidence_matrix and features
             soft_labels = F.softmax(logits, dim=1)  # Convert logits to probabilities
-        print("Soft Labels:", soft_labels)
         return soft_labels
 
 class MLPHyper(nn.Module):
@@ -518,9 +505,9 @@ def create_relation_graphs(folder_path):
     G_movie_actor = nx.Graph()  # Graph for movie-actor relations
     
     file_columns = {
-        'user_movies.xlsx': ['userID', 'movieID', 'rating'],
-        'movie_directors.xlsx': ['movieID', 'directorID'],
-        'movie_actors.xlsx': ['movieID', 'actorID']
+        'user_movies': ['userID', 'movieID', 'rating'],
+        'movie_directors': ['movieID', 'directorID'],
+        'movie_actors': ['movieID', 'actorID']
     }
 
     for file_name, columns in file_columns.items():
@@ -730,8 +717,6 @@ def generate_LightGNN_embeddings(folder_path, features):
 
     # Concatenate all embeddings
     LightGNN_embeddings = torch.cat(embeddings, dim=1)  # Concatenate along the feature dimension
-    print("Combined LightGNN Embedding Shape:", LightGNN_embeddings.shape)
-    print("Combined LightGNN Embedding:", LightGNN_embeddings)
 
     return LightGNN_embeddings
 
@@ -795,24 +780,21 @@ def process_data(folder_path):
     genre_mapping = {}
     genre_id_mapping = {}
 
-    # Read genres from the movie_genres.xlsx file
-    df_genres = pd.read_excel(os.path.join(folder_path, 'movie_genres.xlsx'), usecols=['movieID', 'genreID'])
+    # Read genres from the movie_genres file
+    df_genres = pd.read_excel(os.path.join(folder_path, '.....'), usecols=['movieID', 'Category'])
 
     # Create a mapping of genre names to unique integer labels
-    unique_genres = df_genres['genreID'].unique()
+    unique_genres = df_genres['category'].unique()
     genre_id_mapping = {genre: idx for idx, genre in enumerate(sorted(unique_genres))}
 
     # Replace genre names with integer labels in the DataFrame
-    df_genres['genreID'] = df_genres['genreID'].map(genre_id_mapping)
+    df_genres['category'] = df_genres['category'].map(genre_id_mapping)
 
-    # Create a mapping of movieID to genreID
-    genre_mapping = df_genres.set_index('movieID')['genreID'].to_dict()
+    # Create a mapping of movieID to category
+    genre_mapping = df_genres.set_index('movieID')['category'].to_dict()
 
-    # Create a DataFrame with only genreID for MLP training
-    ground_truth_ratings = pd.DataFrame(list(genre_mapping.items()), columns=['movieID', 'genreID'])
-
-    print("Ground truth ratings with genre labels:")
-    print(ground_truth_ratings.head())
+    # Create a DataFrame with only category for MLP training
+    ground_truth_ratings = pd.DataFrame(list(genre_mapping.items()), columns=['movieID', 'category'])
 
     return ground_truth_ratings
 
@@ -977,11 +959,11 @@ def run_production_evaluation(light_embeddings, genre_labels, num_classes):
     print(f"Average Test Accuracy (Production): {avg_prod_accuracy * 100:.2f}% (± {std_prod_accuracy * 100:.2f}%)")
 
 def main():
-    folder_path = 'C:\\IMDB'
+    folder_path = '....'
     ground_truth_ratings = process_data(folder_path)
 
     # Extract genre labels
-    genre_labels = ground_truth_ratings['genreID'].values
+    genre_labels = ground_truth_ratings['category'].values
 
     # Encode labels
     genre_labels, num_classes = encode_labels(genre_labels)
